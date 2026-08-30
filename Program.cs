@@ -62,9 +62,7 @@ public class Program
         return new(
             parameters.Servers,
             parameters.MaxCapacity,
-            parameters.PrnList,
             parameters.NumberOfEvents,
-            parameters.RandomSeed,
             parameters.FirstArrivalTime,
             parameters.MinArrivalTime,
             parameters.MaxArrivalTime,
@@ -148,8 +146,11 @@ public class Program
     }
 
     private static SimulationParameters LoadParameters(string fileName)
-    {
-        string json = File.ReadAllText(fileName);
+    {   
+        string binDir = AppDomain.CurrentDomain.BaseDirectory;
+        string projectRoot = Path.GetFullPath(Path.Combine(binDir, @"..\..\..\..\"));
+        string json = File.ReadAllText($"{projectRoot}{fileName}");
+
         return JsonSerializer.Deserialize<SimulationParameters>(
             json,
             new JsonSerializerOptions
@@ -187,9 +188,6 @@ public class Program
             /* Number of events to process in the simulation. */
             "NumberOfEvents": 100,
 
-            /* Seed used to choose reproducible values from the PRN list. Use null for random behavior. */
-            "RandomSeed": null,
-
             /* Time of the first arrival event. */
             "FirstArrivalTime": 1.0,
 
@@ -200,22 +198,12 @@ public class Program
             /* Minimum and maximum client service time. */
             "MinServiceTime": 2.0,
             "MaxServiceTime": 3.0,
-
-            /* Pseudo-random numbers used to generate arrival and service times.
-               Each value must be between 0.0 and 1.0. */
-            "PrnList": [
-                0.5,
-                0.1,
-                0.9,
-                0.1,
-                0.2,
-                0.8,
-                0.1
-            ]
         }
         """;
+        string binDir = AppDomain.CurrentDomain.BaseDirectory;
+        string projectRoot = Path.GetFullPath(Path.Combine(binDir, @"..\..\..\..\"));
 
-        File.WriteAllText(fileName, jsonModel);
+        File.WriteAllText($"{projectRoot}{fileName}", jsonModel);
         Console.WriteLine($"Model file '{fileName}' created successfully.");
     }
 
@@ -226,11 +214,9 @@ public class SimulationParameters
     public required uint Servers { get; set; }
     public uint? MaxCapacity { get; set; }
     public required uint NumberOfEvents { get; set; }
-    public int? RandomSeed { get; set; }
     public required double FirstArrivalTime { get; set; }
     public required double MinArrivalTime { get; set; }
     public required double MaxArrivalTime { get; set; }
     public required double MinServiceTime { get; set; }
     public required double MaxServiceTime { get; set; }
-    public required double[] PrnList { get; set; } = [];
 }

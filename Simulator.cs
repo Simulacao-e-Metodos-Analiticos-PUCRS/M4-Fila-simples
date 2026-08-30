@@ -18,9 +18,7 @@ public class SimulationEvent
 public class Simulator(
     uint servers,
     uint? maxCapacity,
-    double[] prnList,
     uint numberOfEvents,
-    int? randomSeed,
     double firstArrivalTime,
     double minArrivalTime,
     double maxArrivalTime,
@@ -44,20 +42,7 @@ public class Simulator(
     // Event queue
     private List<SimulationEvent> _eventQueue = [];
 
-    private Random RandomGenerator { get; } = randomSeed.HasValue ? new(randomSeed.Value) : new();
-
-    private double[] PrnList
-    {
-        get;
-        init
-        {
-            if (value == null || value.Length == 0)
-                throw new ArgumentException("The PRN list cannot be null or empty.");
-            if(value.All(prn => prn < 0.0 || prn > 1.0))
-                throw new ArgumentException("All PRNs must be in the range [0, 1].");
-            field = value;
-        }
-    } = prnList;
+    private RandomGen RandomGenerator { get; } = new RandomGen();
 
     private bool _simulationEnded = false;
     private double _currentTime = 0.0;
@@ -177,7 +162,7 @@ public class Simulator(
 
     private double GetNextPRN()
     {
-        return PrnList[RandomGenerator.Next(PrnList.Length)];
+        return RandomGenerator.NextDouble();
     }
 
     private void UpdateStatistics(double newTime)
