@@ -1,0 +1,8 @@
+class RandomGen
+{
+    
+    public RandomGen()
+    {
+        
+    }
+}
