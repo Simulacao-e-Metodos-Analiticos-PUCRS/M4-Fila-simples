@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
 
 namespace QueueSimulator;
 public enum EventType
@@ -40,7 +39,7 @@ public class Simulator(
         : [];
     
     // Event queue
-    private List<SimulationEvent> _eventQueue = [];
+    private PriorityQueue<SimulationEvent, double> _eventQueue = new();
 
     private RandomGen RandomGenerator { get; } = new RandomGen();
 
@@ -50,6 +49,8 @@ public class Simulator(
     private double _lastEventTime = 0.0;
     private uint _processedEvents = 0u;
     private uint _debugEventNumber = 0u;
+    private uint _randomsUsed = 0u;
+    private const uint MaxRandoms = 100_000;
     private uint _unservedEvents = 0u;
     private double _totalServiceTime = 0.0;
     private uint _servedEvents = 0u;
@@ -77,11 +78,9 @@ public class Simulator(
         ScheduleEvent(FirstArrivalTime, EventType.Arrival);
 
         // 2. Main simulation loop
-        while (_eventQueue.Any() && !_simulationEnded && _processedEvents < NumberOfEvents)
+        while (_eventQueue.Count > 0 && !_simulationEnded)
         {
-            _eventQueue = _eventQueue.OrderBy(e => e.Time).ToList();
-            var currentEvent = _eventQueue.First();
-            _eventQueue.RemoveAt(0);
+            var currentEvent = _eventQueue.Dequeue();
             _processedEvents++;
             _debugEventNumber++;
 
@@ -114,6 +113,7 @@ public class Simulator(
             _unservedEvents++;
         }
 
+        if (_simulationEnded) return !accepted;
         double prnArrival = GetNextPRN();
         if (_simulationEnded) return !accepted;
 
@@ -122,6 +122,7 @@ public class Simulator(
 
         if (accepted && _busyServers < Servers)
         {
+            if (_simulationEnded) return !accepted;
             double prnDeparture = GetNextPRN();
             if (_simulationEnded) return !accepted;
 
@@ -157,11 +158,17 @@ public class Simulator(
 
     private void ScheduleEvent(double time, EventType type)
     {
-        _eventQueue.Add(new SimulationEvent { Time = time, Type = type });
+        _eventQueue.Enqueue(new SimulationEvent { Time = time, Type = type }, time);
     }
 
     private double GetNextPRN()
     {
+        if (_randomsUsed >= MaxRandoms)
+        {
+            _simulationEnded = true;
+            return 0;
+        }
+        _randomsUsed++;
         return RandomGenerator.NextDouble();
     }
 
