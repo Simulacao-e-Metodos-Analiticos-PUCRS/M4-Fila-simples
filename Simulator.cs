@@ -146,6 +146,7 @@ public class Simulator(
 
             if (_numClients >= _busyServers + 1)
             {
+                if (_simulationEnded) return;
                 double prnDeparture = GetNextPRN();
                 double ts = MinServiceTime + (MaxServiceTime - MinServiceTime) * prnDeparture;
                 _totalServiceTime += ts;
