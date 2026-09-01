@@ -199,6 +199,6 @@ public class Simulator(
         string notation = IsCapacityUnlimited ? $"G/G/{Servers}/∞" : $"G/G/{Servers}/{MaxCapacity}";
         double averageServiceTime = _servedEvents > 0 ? _totalServiceTime / _servedEvents : 0.0;
 
-        ConsolePrinter.PrintResultsTable(notation, _currentTime, TimeInState, averageServiceTime, NumberOfEvents, _unservedEvents);
+        ConsolePrinter.PrintResultsTable(notation, _currentTime, TimeInState, averageServiceTime, _processedEvents, _unservedEvents);
     }
 }
