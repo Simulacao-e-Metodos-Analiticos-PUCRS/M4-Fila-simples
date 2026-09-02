@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace QueueSimulator;
 public enum EventType
@@ -34,9 +35,8 @@ public class Simulator(
     private double MinServiceTime { get; init; } = minServiceTime;
     private double MaxServiceTime { get; init; } = maxServiceTime;
     private bool IsCapacityUnlimited => !MaxCapacity.HasValue;
-    private List<double> TimeInState { get; } = maxCapacity.HasValue
-        ? new List<double>((int)(maxCapacity.Value + 1))
-        : [];
+    private List<double> TimeInState { get; } = Enumerable.Repeat(0.0, (int)((maxCapacity ?? 0) + 1)).ToList();
+    private int TimeInStateSize => MaxCapacity.HasValue ? (int)(MaxCapacity.Value + 1) : TimeInState.Count;
     
     // Event queue
     private PriorityQueue<SimulationEvent, double> _eventQueue = new();
