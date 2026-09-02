@@ -1,0 +1,10 @@
+{
+    "Servers": 1,
+    "MaxCapacity": 5,
+    "NumberOfEvents": 999999, 
+    "FirstArrivalTime": 3.0,
+    "MinArrivalTime": 3.0,
+    "MaxArrivalTime": 5.0,
+    "MinServiceTime": 4.0,
+    "MaxServiceTime": 5.0
+}

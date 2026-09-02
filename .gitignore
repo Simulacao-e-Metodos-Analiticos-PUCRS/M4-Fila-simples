@@ -56,3 +56,5 @@ CodeCoverage/
 TestResult.xml
 nunit-*.xml
 *.json
+!gg15.json
+!gg25.json
