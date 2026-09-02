@@ -13,5 +13,5 @@ class RandomGen
         return x0;
     }
 
-    public double NextDouble() => (double)x0 / m;
+    public double NextDouble() => (double)Next() / m;
 }
