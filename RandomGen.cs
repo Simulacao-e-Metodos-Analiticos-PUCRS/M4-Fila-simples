@@ -1,22 +1,17 @@
 class RandomGen
 {
-    private int x0 = 98765;
-    private const int a = 1664525;
-    private const int c = 1013904223;
+    private uint x0 = 98765;
+    private const uint a = 1664525;
+    private const uint c = 1013904223;
     private const long m = 4294967296L;
     public RandomGen()
     {}
 
-    public int Next()
+    public uint Next()
     {
-        long resultado = ((long) a * x0 + c) % m;
-        x0 = (int)resultado;
-        
+        x0 = (uint)((long)a * x0 + c);
         return x0;
     }
 
-    public double NextDouble()
-    {
-        return (double)Next() / m;
-    }
+    public double NextDouble() => (double)x0 / m;
 }

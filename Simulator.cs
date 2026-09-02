@@ -35,12 +35,11 @@ public class Simulator(
     private double MinServiceTime { get; init; } = minServiceTime;
     private double MaxServiceTime { get; init; } = maxServiceTime;
     private bool IsCapacityUnlimited => !MaxCapacity.HasValue;
-    private List<double> TimeInState { get; } = maxCapacity.HasValue
-        ? new List<double>((int)(maxCapacity.Value + 1))
-        : [];
+    private List<double> TimeInState { get; } = Enumerable.Repeat(0.0, (int)((maxCapacity ?? 0) + 1)).ToList();
+    private int TimeInStateSize => MaxCapacity.HasValue ? (int)(MaxCapacity.Value + 1) : TimeInState.Count;
     
     // Event queue
-    private List<SimulationEvent> _eventQueue = [];
+    private PriorityQueue<SimulationEvent, double> _eventQueue = new();
 
     private RandomGen RandomGenerator { get; } = new RandomGen();
 
@@ -50,6 +49,8 @@ public class Simulator(
     private double _lastEventTime = 0.0;
     private uint _processedEvents = 0u;
     private uint _debugEventNumber = 0u;
+    private uint _randomsUsed = 0u;
+    private const uint MaxRandoms = 100_000;
     private uint _unservedEvents = 0u;
     private double _totalServiceTime = 0.0;
     private uint _servedEvents = 0u;
@@ -77,11 +78,9 @@ public class Simulator(
         ScheduleEvent(FirstArrivalTime, EventType.Arrival);
 
         // 2. Main simulation loop
-        while (_eventQueue.Any() && !_simulationEnded && _processedEvents < NumberOfEvents)
+        while (_eventQueue.Count > 0 && !_simulationEnded)
         {
-            _eventQueue = _eventQueue.OrderBy(e => e.Time).ToList();
-            var currentEvent = _eventQueue.First();
-            _eventQueue.RemoveAt(0);
+            var currentEvent = _eventQueue.Dequeue();
             _processedEvents++;
             _debugEventNumber++;
 
@@ -114,6 +113,7 @@ public class Simulator(
             _unservedEvents++;
         }
 
+        if (_simulationEnded) return !accepted;
         double prnArrival = GetNextPRN();
         if (_simulationEnded) return !accepted;
 
@@ -122,6 +122,7 @@ public class Simulator(
 
         if (accepted && _busyServers < Servers)
         {
+            if (_simulationEnded) return !accepted;
             double prnDeparture = GetNextPRN();
             if (_simulationEnded) return !accepted;
 
@@ -145,6 +146,7 @@ public class Simulator(
 
             if (_numClients >= _busyServers + 1)
             {
+                if (_simulationEnded) return;
                 double prnDeparture = GetNextPRN();
                 double ts = MinServiceTime + (MaxServiceTime - MinServiceTime) * prnDeparture;
                 _totalServiceTime += ts;
@@ -157,11 +159,17 @@ public class Simulator(
 
     private void ScheduleEvent(double time, EventType type)
     {
-        _eventQueue.Add(new SimulationEvent { Time = time, Type = type });
+        _eventQueue.Enqueue(new SimulationEvent { Time = time, Type = type }, time);
     }
 
     private double GetNextPRN()
     {
+        if (_randomsUsed >= MaxRandoms)
+        {
+            _simulationEnded = true;
+            return 0;
+        }
+        _randomsUsed++;
         return RandomGenerator.NextDouble();
     }
 
@@ -191,6 +199,6 @@ public class Simulator(
         string notation = IsCapacityUnlimited ? $"G/G/{Servers}/∞" : $"G/G/{Servers}/{MaxCapacity}";
         double averageServiceTime = _servedEvents > 0 ? _totalServiceTime / _servedEvents : 0.0;
 
-        ConsolePrinter.PrintResultsTable(notation, _currentTime, TimeInState, averageServiceTime, NumberOfEvents, _unservedEvents);
+        ConsolePrinter.PrintResultsTable(notation, _currentTime, TimeInState, averageServiceTime, _processedEvents, _unservedEvents);
     }
 }
