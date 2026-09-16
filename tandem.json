@@ -1,0 +1,24 @@
+{
+    "FirstArrivalTime": 2.5,
+
+    "Queues": [
+        {
+            "Name": "Fila 1",
+            "Servers": 2,
+            "Capacity": 3,
+            "MinArrival": 1.0,
+            "MaxArrival": 5.0,
+            "MinService": 4.0,
+            "MaxService": 5.0,
+            "Routes": [ { "To": "Fila 2", "Probability": 1.0 } ]
+        },
+        {
+            "Name": "Fila 2",
+            "Servers": 1,
+            "Capacity": 5,
+            "MinService": 1.0,
+            "MaxService": 3.0,
+            "Routes": []
+        }
+    ]
+}
