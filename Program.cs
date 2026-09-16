@@ -38,7 +38,18 @@ public class Program
         }
 
         string fileName = args[0].EndsWith(".json", StringComparison.OrdinalIgnoreCase) ? args[0] : $"{args[0]}.json";
-        string json = File.ReadAllText(fileName);
+        string modelPath = ResolveModelPath(fileName);
+        string json = File.ReadAllText(modelPath);
+
+        // A file listing "Queues" describes a network; anything else is the
+        // single queue model.
+        if (IsNetworkFile(json))
+        {
+            Simulador simulador = new(Rede.CarregarDe(modelPath));
+            simulador.Executa();
+            simulador.ImprimeResultados();
+            return;
+        }
 
         SimulationParameters parameters = JsonSerializer.Deserialize<SimulationParameters>(
             json,
@@ -55,6 +66,16 @@ public class Program
         simulator.Run(debug);
         simulator.PrintResults();
         InteractiveTerminal(parameters, debug);
+    }
+
+    private static bool IsNetworkFile(string json)
+    {
+        using JsonDocument document = JsonDocument.Parse(
+            json,
+            new JsonDocumentOptions { CommentHandling = JsonCommentHandling.Skip });
+
+        return document.RootElement.ValueKind == JsonValueKind.Object
+            && document.RootElement.TryGetProperty("Queues", out _);
     }
 
     private static Simulator CreateSimulator(SimulationParameters parameters)
@@ -145,11 +166,34 @@ public class Program
         }
     }
 
+    /// <summary>
+    /// Finds a model file without assuming any separator or how deep the build
+    /// output sits: it looks where the program was launched from, then next to
+    /// the executable, then upwards towards the project root.
+    /// </summary>
+    private static string ResolveModelPath(string fileName)
+    {
+        if (File.Exists(fileName))
+            return fileName;
+
+        string? directory = AppContext.BaseDirectory;
+
+        while (directory is not null)
+        {
+            string candidate = Path.Combine(directory, fileName);
+
+            if (File.Exists(candidate))
+                return candidate;
+
+            directory = Directory.GetParent(directory)?.FullName;
+        }
+
+        throw new FileNotFoundException($"Model file '{fileName}' was not found.", fileName);
+    }
+
     private static SimulationParameters LoadParameters(string fileName)
-    {   
-        string binDir = AppDomain.CurrentDomain.BaseDirectory;
-        string projectRoot = Path.GetFullPath(Path.Combine(binDir, @"..\..\..\..\"));
-        string json = File.ReadAllText($"{projectRoot}{fileName}");
+    {
+        string json = File.ReadAllText(ResolveModelPath(fileName));
 
         return JsonSerializer.Deserialize<SimulationParameters>(
             json,
@@ -171,9 +215,11 @@ public class Program
     {
         fileName = fileName.EndsWith(".json", StringComparison.OrdinalIgnoreCase) ? fileName : $"{fileName}.json";
 
-        if (File.Exists(fileName))
+        string destination = Path.Combine(Directory.GetCurrentDirectory(), fileName);
+
+        if (File.Exists(destination))
         {
-            Console.WriteLine($"The file '{fileName}' already exists. No changes were made.");
+            Console.WriteLine($"The file '{destination}' already exists. No changes were made.");
             return;
         }
 
@@ -200,11 +246,8 @@ public class Program
             "MaxServiceTime": 3.0,
         }
         """;
-        string binDir = AppDomain.CurrentDomain.BaseDirectory;
-        string projectRoot = Path.GetFullPath(Path.Combine(binDir, @"..\..\..\..\"));
-
-        File.WriteAllText($"{projectRoot}{fileName}", jsonModel);
-        Console.WriteLine($"Model file '{fileName}' created successfully.");
+        File.WriteAllText(destination, jsonModel);
+        Console.WriteLine($"Model file '{destination}' created successfully.");
     }
 
 }
