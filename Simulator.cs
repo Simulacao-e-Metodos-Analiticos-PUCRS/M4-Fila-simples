@@ -38,7 +38,6 @@ public class Simulator(
     private List<double> TimeInState { get; } = Enumerable.Repeat(0.0, (int)((maxCapacity ?? 0) + 1)).ToList();
     private int TimeInStateSize => MaxCapacity.HasValue ? (int)(MaxCapacity.Value + 1) : TimeInState.Count;
     
-    // Event queue
     private PriorityQueue<SimulationEvent, double> _eventQueue = new();
 
     private RandomGen RandomGenerator { get; } = new RandomGen();
@@ -74,10 +73,8 @@ public class Simulator(
             ConsolePrinter.PrintDebugHeader();
         }
 
-        // 1. Initial condition: schedule the first arrival independently
         ScheduleEvent(FirstArrivalTime, EventType.Arrival);
 
-        // 2. Main simulation loop
         while (_eventQueue.Count > 0 && !_simulationEnded)
         {
             var currentEvent = _eventQueue.Dequeue();
@@ -138,7 +135,6 @@ public class Simulator(
 
     private void ProcessDeparture()
     {
-        // Client leaves the system
         if (_numClients > 0)
         {
             _numClients--;

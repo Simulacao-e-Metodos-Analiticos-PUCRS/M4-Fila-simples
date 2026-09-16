@@ -2,17 +2,10 @@ using System;
 
 namespace QueueSimulator;
 
-/// <summary>
-/// A single queue of the network: its configuration plus its runtime state.
-/// Groups the flat fields that currently live in Simulator, so that the
-/// simulator can hold several queues instead of a single one.
-/// </summary>
 public class Fila
 {
-    /// <summary>Capacity value that means "no limit".</summary>
     public const int Unlimited = int.MaxValue;
 
-    // Configuration
     private readonly int servers;
     private readonly int capacity;
     private readonly double minArrival;
@@ -21,14 +14,12 @@ public class Fila
     private readonly double maxService;
     private readonly bool externalArrivals;
 
-    // Runtime state
     private int customers;
     private int loss;
     private double[] times;
 
     public string Name { get; }
 
-    /// <summary>Queue fed by an external arrival stream.</summary>
     public Fila(string name, int servers, int capacity,
                 double minArrival, double maxArrival,
                 double minService, double maxService)
@@ -42,7 +33,6 @@ public class Fila
         externalArrivals = true;
     }
 
-    /// <summary>Queue fed only by other queues, with no external arrivals.</summary>
     public Fila(string name, int servers, int capacity,
                 double minService, double maxService)
     {
@@ -63,25 +53,17 @@ public class Fila
         times = new double[capacity == Unlimited ? 1 : capacity + 1];
     }
 
-    // --- Operations suggested by the assignment ---
-
-    /// <summary>Number of clients currently in the queue.</summary>
     public int Status() => customers;
 
     public int Capacity() => capacity;
 
     public int Servers() => servers;
 
-    /// <summary>Records one client lost because the queue was full.</summary>
     public void Loss() => loss++;
 
-    /// <summary>Admits one client.</summary>
     public void In() => customers++;
 
-    /// <summary>Removes one client.</summary>
     public void Out() => customers--;
-
-    // --- Accessors ---
 
     public int Losses() => loss;
 
@@ -93,22 +75,16 @@ public class Fila
 
     public double MaxService() => maxService;
 
-    /// <summary>False for queues that only receive clients from other queues.</summary>
     public bool HasExternalArrivals() => externalArrivals;
 
     public bool IsUnlimited() => capacity == Unlimited;
 
     public bool IsFull() => customers >= capacity;
 
-    // A client starts being served as soon as it is admitted and a server is
-    // free, so the number of busy servers is always min(customers, servers).
     public int BusyServers() => Math.Min(customers, servers);
 
     public bool HasFreeServer() => BusyServers() < servers;
 
-    // --- Accumulated times per state ---
-
-    /// <summary>Credits an elapsed interval to the state the queue is in.</summary>
     public void AccumulateTime(double elapsed)
     {
         if (customers >= times.Length)

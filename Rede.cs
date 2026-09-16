@@ -6,10 +6,8 @@ using System.Text.Json;
 
 namespace QueueSimulator;
 
-/// <summary>Where a client goes after being served, and how often.</summary>
 public class Rota
 {
-    /// <summary>Destination queue, or null when the client leaves the network.</summary>
     public Fila? Destino { get; }
 
     public double Probabilidade { get; }
@@ -24,10 +22,6 @@ public class Rota
     }
 }
 
-/// <summary>
-/// The queueing network: its queues, how clients are routed between them,
-/// and when the first external client arrives.
-/// </summary>
 public class Rede
 {
     private readonly List<Fila> filas;
@@ -53,22 +47,12 @@ public class Rede
 
     public IReadOnlyList<Rota> RotasDe(Fila fila) => rotas[fila.Name];
 
-    /// <summary>
-    /// True when the destination is already known, so routing costs no random
-    /// number. Holds for a queue that always exits the network and for one
-    /// that always forwards to the same queue.
-    /// </summary>
     public bool RoteamentoDeterministico(Fila fila)
     {
         List<Rota> destinos = rotas[fila.Name];
         return destinos.Count == 0 || (destinos.Count == 1 && destinos[0].Probabilidade >= 1.0);
     }
 
-    /// <summary>
-    /// Resolves where a client served by <paramref name="origem"/> goes.
-    /// Returns null when the client leaves the network. The random number is
-    /// only read when the routing is not deterministic.
-    /// </summary>
     public Fila? Destino(Fila origem, double u = 0.0)
     {
         double acumulado = 0.0;
@@ -118,7 +102,6 @@ public class Rede
     {
         int capacidade = descricao.Capacity ?? Fila.Unlimited;
 
-        // A queue without an arrival range is fed only by other queues.
         return descricao.MinArrival.HasValue && descricao.MaxArrival.HasValue
             ? new Fila(descricao.Name, descricao.Servers, capacidade,
                        descricao.MinArrival.Value, descricao.MaxArrival.Value,
@@ -136,7 +119,6 @@ public class Rede
         {
             Fila? destino = null;
 
-            // An absent destination means the client leaves the network.
             if (!string.IsNullOrWhiteSpace(rota.To) && !porNome.TryGetValue(rota.To, out destino))
                 throw new ArgumentException($"[{descricao.Name}] Unknown route destination: '{rota.To}'.");
 

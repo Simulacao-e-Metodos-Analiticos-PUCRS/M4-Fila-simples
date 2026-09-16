@@ -40,8 +40,6 @@ public class Program
         string modelPath = ResolveModelPath(fileName);
         string json = File.ReadAllText(modelPath);
 
-        // A file listing "Queues" describes a network; anything else is the
-        // single queue model.
         if (IsNetworkFile(json))
         {
             Simulador simulador = new(Rede.CarregarDe(modelPath));
@@ -165,11 +163,6 @@ public class Program
         }
     }
 
-    /// <summary>
-    /// Finds a model file without assuming any separator or how deep the build
-    /// output sits: it looks where the program was launched from, then next to
-    /// the executable, then upwards towards the project root.
-    /// </summary>
     private static string ResolveModelPath(string fileName)
     {
         if (File.Exists(fileName))
@@ -224,23 +217,17 @@ public class Program
 
         string jsonModel = """
         {
-            /* Number of parallel servers in the queueing system. */
             "Servers": 2,
 
-            /* Maximum number of clients in the system. Use null for unlimited capacity. */
             "MaxCapacity": 2,
 
-            /* Number of events to process in the simulation. */
             "NumberOfEvents": 100,
 
-            /* Time of the first arrival event. */
             "FirstArrivalTime": 1.0,
 
-            /* Minimum and maximum time between arrivals. */
             "MinArrivalTime": 1.0,
             "MaxArrivalTime": 2.0,
 
-            /* Minimum and maximum client service time. */
             "MinServiceTime": 2.0,
             "MaxServiceTime": 3.0,
         }
