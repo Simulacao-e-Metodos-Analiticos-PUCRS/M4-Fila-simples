@@ -11,7 +11,6 @@ public class Program
     {
         ConsolePrinter.PrintHeaderLine();
         ConsolePrinter.PrintHeaderText("QUEUEING SIMULATOR");
-        ConsolePrinter.PrintHeaderText("version 1.0");
         ConsolePrinter.PrintHeaderText("(August 2026)");
         ConsolePrinter.PrintHeaderText("by Augusto Sanhudo da Silva Knob");
         ConsolePrinter.PrintHeaderText("Carlos Eduardo Brito Mascarello");
@@ -21,7 +20,7 @@ public class Program
         ConsolePrinter.PrintHeaderText("Developed during the undergraduate class on");
         ConsolePrinter.PrintHeaderText("Simulation and Analytical Methods (2026/2)");
         ConsolePrinter.PrintHeaderText("Taught by Prof. Afonso Sales at");
-        ConsolePrinter.PrintHeaderText("Polytechnic School (EP/PUCRS)");
+        ConsolePrinter.PrintHeaderText("Polytechnic School (PUCRS)");
         ConsolePrinter.PrintHeaderLine();
 
         if (args.Length > 0 && "--create-model".Equals(args[0], StringComparison.OrdinalIgnoreCase))

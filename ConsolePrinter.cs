@@ -95,51 +95,20 @@ public static class ConsolePrinter
     {
         Console.WriteLine();
         PrintHeaderLine();
-        PrintHeaderText("QUEUEING NETWORK SIMULATION REPORT");
+        PrintHeaderText("QUEUE RESULTS - QUEUES 1 AND 2");
         PrintHeaderLine();
 
-        PrintSection("1. NETWORK CONFIGURATION");
+        Console.WriteLine();
+        PrintField("Global simulation time", $"{totalTime:F6} minutes");
+        PrintField("Events processed", events.ToString());
+        PrintField("Random numbers used", randoms.ToString());
 
         foreach (Fila fila in rede.Filas)
         {
             Console.WriteLine();
-            Console.WriteLine($"  {fila.Name}");
-            PrintField("Model", fila.Notation());
-            PrintField("Servers", fila.Servers().ToString());
-            PrintField("Capacity", fila.IsUnlimited() ? "unlimited" : fila.Capacity().ToString());
-            PrintField("Arrival interval", fila.HasExternalArrivals()
-                ? $"{fila.MinArrival():F2} .. {fila.MaxArrival():F2} minutes"
-                : "none (no external arrivals)");
-            PrintField("Service interval", $"{fila.MinService():F2} .. {fila.MaxService():F2} minutes");
-            PrintField("Routing", DescribeRouting(rede, fila));
-        }
-
-        PrintSection("2. SIMULATION SETTINGS");
-        Console.WriteLine();
-        PrintField("First arrival", $"t = {rede.PrimeiraChegada:F2} minutes");
-        PrintField("Random numbers used", randoms.ToString());
-        PrintField("Global simulation time", $"{totalTime:F6} minutes");
-        PrintField("Events processed", events.ToString());
-
-        int section = 3;
-        foreach (Fila fila in rede.Filas)
-        {
-            PrintSection($"{section++}. RESULTS - {fila.Name} ({fila.Notation()})");
+            Console.WriteLine($"  {fila.Name} ({fila.Notation()})");
             PrintStateTable(fila, totalTime);
             Console.WriteLine($"  Lost clients: {fila.Losses()}");
-        }
-
-        PrintSection($"{section}. VALIDATION");
-        Console.WriteLine();
-
-        foreach (Fila fila in rede.Filas)
-        {
-            (double somaTempos, double somaProbabilidades) = Totals(fila, totalTime);
-
-            PrintCheck($"{fila.Name}: sum of times", somaTempos, totalTime,
-                       $"{somaTempos:F6} vs global {totalTime:F6}");
-            PrintCheck($"{fila.Name}: sum of probabilities", somaProbabilidades, 1.0,
-                       $"{somaProbabilidades:F12} vs 1.000000000000");
         }
     }
 
