@@ -89,57 +89,6 @@ Regras:
 
 Gerador: congruencial linear `x = (1664525·x + 1013904223) mod 2³²`, `u = x / 2³²`.
 
-## Resultado do T1
-
-Modelo [`t1.yml`](t1.yml): filas inicialmente vazias, primeiro cliente no tempo 2,0, 100.000 aleatórios (semente 98765). Saída completa em [`resultado-t1.txt`](resultado-t1.txt).
-
-**Resultado da Fila 1: G/G/1, chegadas entre 2..4, atendimento entre 1..2** — roteamento 0,2 → Fila 2, 0,8 → Fila 3
-
-| Estado | Tempo acumulado (min) | Probabilidade |
-|---:|---:|---:|
-| 0 | 20272,660643 | 40,0051% |
-| 1 | 26698,272570 | 52,6851% |
-| 2 | 3555,515732 | 7,0163% |
-| 3 | 148,149715 | 0,2924% |
-| 4 | 0,625634 | 0,0012% |
-
-Perdas: 0
-
-**Resultado da Fila 2: G/G/2/5, atendimento entre 4..6** — roteamento 0,3 → Fila 1, 0,5 → Fila 3, 0,2 → exterior
-
-| Estado | Tempo acumulado (min) | Probabilidade |
-|---:|---:|---:|
-| 0 | 12232,564645 | 24,1391% |
-| 1 | 21008,539187 | 41,4572% |
-| 2 | 13007,876430 | 25,6691% |
-| 3 | 3760,603373 | 7,4210% |
-| 4 | 591,535821 | 1,1673% |
-| 5 | 74,104837 | 0,1462% |
-
-Perdas: 4
-
-**Resultado da Fila 3: G/G/2/10, atendimento entre 5..15** — roteamento 0,7 → Fila 2, 0,3 → exterior
-
-| Estado | Tempo acumulado (min) | Probabilidade |
-|---:|---:|---:|
-| 0 | 6,741586 | 0,0133% |
-| 1 | 2,066483 | 0,0041% |
-| 2 | 2,792766 | 0,0055% |
-| 3 | 4,562755 | 0,0090% |
-| 4 | 5,293618 | 0,0104% |
-| 5 | 3,417386 | 0,0067% |
-| 6 | 8,000998 | 0,0158% |
-| 7 | 57,453262 | 0,1134% |
-| 8 | 2810,878791 | 5,5469% |
-| 9 | 15744,397119 | 31,0692% |
-| 10 | 32029,619528 | 63,2057% |
-
-Perdas: 11703
-
-**Tempo total de simulação:** 50675,224293 minutos (58.434 eventos, 100.000 aleatórios).
-
-A Fila 3 fica quase sempre cheia e perde muitos clientes. Isso é esperado: pelas equações de tráfego, ela recebe cerca de 0,4 cliente/min, mas com 2 servidores e atendimento médio de 10 min só consegue atender 0,2 cliente/min.
-
 ## Outros arquivos de entrada
 
 O simulador também aceita os formatos JSON das etapas anteriores:
