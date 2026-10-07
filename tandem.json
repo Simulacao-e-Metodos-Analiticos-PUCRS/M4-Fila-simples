@@ -17,7 +17,7 @@
             "Capacity": 5,
             "MinService": 4.0,
             "MaxService": 6.0,
-            "Routes": [{ "To": "Fila 2", "Probability": 0.5 }, { "To": "Fila 1", "Probability": 0.3 }]
+            "Routes": [{ "To": "Fila 1", "Probability": 0.3 }, { "To": "Fila 3", "Probability": 0.5 }, { "To": "Exterior", "Probability": 0.2 }]
         },
         {
             "Name": "Fila 3",
@@ -25,7 +25,7 @@
             "Capacity": 10,
             "MinService": 5.0,
             "MaxService": 15.0,
-            "Routes": [{ "To": "Fila 3", "Probability": 0.7 }]
+            "Routes": [{ "To": "Fila 2", "Probability": 0.7 }, { "To": "Exterior", "Probability": 0.3 }]
         }
     ]
 }

@@ -11,41 +11,46 @@ public enum TipoEvento
     Passagem
 }
 
-public class Evento : IComparable<Evento>
+public class Evento
 {
     public TipoEvento Tipo { get; }
 
-    public Fila Fila { get; }
+    public int Origem { get; }
 
-    public Fila? Destino { get; }
+    public int Destino { get; }
 
     public double Tempo { get; }
 
-    private Evento(TipoEvento tipo, double tempo, Fila fila, Fila? destino = null)
+    private Evento(TipoEvento tipo, double tempo, int origem, int destino)
     {
         if (tempo < 0)
             throw new ArgumentException("An event cannot occur before time zero.");
 
+        bool valido = tipo switch
+        {
+            TipoEvento.Chegada  => origem == Rede.Exterior && destino >= 0,
+            TipoEvento.Saida    => origem >= 0 && destino == Rede.Exterior,
+            TipoEvento.Passagem => origem >= 0 && destino >= 0,
+            _ => false
+        };
+
+        if (!valido)
+            throw new ArgumentException($"Invalid origin/destination for a {tipo} event: {origem} -> {destino}.");
+
         Tipo = tipo;
         Tempo = tempo;
-        Fila = fila ?? throw new ArgumentNullException(nameof(fila));
+        Origem = origem;
         Destino = destino;
     }
 
-    public static Evento Chegada(double tempo, Fila fila)
-        => new(TipoEvento.Chegada, tempo, fila);
+    public static Evento Chegada(double tempo, int destino)
+        => new(TipoEvento.Chegada, tempo, Rede.Exterior, destino);
 
-    public static Evento Saida(double tempo, Fila fila)
-        => new(TipoEvento.Saida, tempo, fila);
+    public static Evento Saida(double tempo, int origem)
+        => new(TipoEvento.Saida, tempo, origem, Rede.Exterior);
 
-    public static Evento Passagem(double tempo, Fila origem, Fila destino)
-        => new(TipoEvento.Passagem, tempo, origem,
-               destino ?? throw new ArgumentNullException(nameof(destino)));
+    public static Evento Passagem(double tempo, int origem, int destino)
+        => new(TipoEvento.Passagem, tempo, origem, destino);
 
-    public int CompareTo(Evento? other)
-        => other is null ? 1 : Tempo.CompareTo(other.Tempo);
-
-    public override string ToString() => Tipo == TipoEvento.Passagem
-        ? $"{Tipo} {Fila.Name} -> {Destino!.Name} @ {Tempo:F2}"
-        : $"{Tipo} {Fila.Name} @ {Tempo:F2}";
+    public override string ToString() => $"{Tipo} {Origem} -> {Destino} @ {Tempo:F2}";
 }

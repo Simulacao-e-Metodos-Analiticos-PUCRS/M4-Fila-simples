@@ -1,14 +1,49 @@
 using System;
+using System.Collections.Generic;
+using System.Linq;
 
 namespace QueueSimulator;
 
+public record ResultadoFila(double[] Tempos, double Perdas);
+
+public record ResultadoSimulacao(double TempoGlobal, double Eventos, double Aleatorios, IReadOnlyList<ResultadoFila> Filas)
+{
+    // Mean of several runs of the same network: accumulated times, losses and global time.
+    public static ResultadoSimulacao Media(IReadOnlyList<ResultadoSimulacao> execucoes)
+    {
+        int n = execucoes.Count;
+        var filas = new List<ResultadoFila>();
+
+        for (int fila = 0; fila < execucoes[0].Filas.Count; fila++)
+        {
+            int estados = execucoes.Max(execucao => execucao.Filas[fila].Tempos.Length);
+            double[] tempos = new double[estados];
+
+            foreach (ResultadoSimulacao execucao in execucoes)
+            {
+                double[] origem = execucao.Filas[fila].Tempos;
+                for (int estado = 0; estado < origem.Length; estado++)
+                    tempos[estado] += origem[estado] / n;
+            }
+
+            filas.Add(new ResultadoFila(tempos, execucoes.Average(execucao => execucao.Filas[fila].Perdas)));
+        }
+
+        return new ResultadoSimulacao(
+            execucoes.Average(execucao => execucao.TempoGlobal),
+            execucoes.Average(execucao => execucao.Eventos),
+            execucoes.Average(execucao => execucao.Aleatorios),
+            filas);
+    }
+}
+
 public class Simulador
 {
-    private const uint MaxAleatorios = 100_000;
+    private readonly uint maxAleatorios;
 
     private readonly Rede rede;
     private readonly Escalonador escalonador = new();
-    private readonly RandomGen gerador = new();
+    private readonly IGeradorAleatorio gerador;
 
     private double relogio;
     private double ultimoEvento;
@@ -16,9 +51,11 @@ public class Simulador
     private bool encerrada;
     private uint eventosProcessados;
 
-    public Simulador(Rede rede)
+    public Simulador(Rede rede, IGeradorAleatorio gerador, uint maxAleatorios = Modelo.AleatoriosPadrao)
     {
         this.rede = rede ?? throw new ArgumentNullException(nameof(rede));
+        this.gerador = gerador ?? throw new ArgumentNullException(nameof(gerador));
+        this.maxAleatorios = maxAleatorios;
     }
 
     public double Relogio => relogio;
@@ -32,21 +69,28 @@ public class Simulador
     {
         foreach (Fila fila in rede.Filas)
         {
-            if (fila.HasExternalArrivals())
-                escalonador.Agenda(Evento.Chegada(rede.PrimeiraChegada, fila));
+            if (rede.PrimeiraChegadaDe(fila.Indice) is double primeiraChegada)
+                escalonador.Agenda(Evento.Chegada(primeiraChegada, fila.Indice));
         }
     }
 
-    public void Executa()
+    public void Executa(bool debug = false)
     {
+        if (debug)
+            ConsolePrinter.PrintNetworkDebugHeader(rede);
+
         AgendaChegadasIniciais();
 
         while (escalonador.TemEventos() && !encerrada)
         {
-            Processa(escalonador.Proximo());
+            Evento evento = escalonador.Proximo();
+            Processa(evento);
             eventosProcessados++;
 
-            if (aleatoriosUsados >= MaxAleatorios)
+            if (debug)
+                ConsolePrinter.PrintNetworkDebugEvent(eventosProcessados, evento, rede);
+
+            if (aleatoriosUsados >= maxAleatorios)
                 encerrada = true;
         }
 
@@ -54,12 +98,14 @@ public class Simulador
         VerificaProbabilidades();
     }
 
-    public void ImprimeResultados()
-        => ConsolePrinter.PrintNetworkResults(rede, TempoGlobal, eventosProcessados, aleatoriosUsados);
+    public ResultadoSimulacao Resultado()
+        => new(TempoGlobal, eventosProcessados, aleatoriosUsados,
+               rede.Filas.Select(fila => new ResultadoFila((double[])fila.Times().Clone(), fila.Losses())).ToList());
 
-    public void Processa(Evento evento)
+    private void Processa(Evento evento)
     {
         AcumulaTempos(evento.Tempo);
+        relogio = evento.Tempo;
 
         switch (evento.Tipo)
         {
@@ -109,10 +155,10 @@ public class Simulador
     public double Probabilidade(Fila fila, int estado)
         => TempoGlobal > 0 ? fila.TimeAt(estado) / TempoGlobal : 0.0;
 
-    public void ProcessaChegada(Evento evento)
+    // Origin is the outside (-1); destination is the queue that receives the client.
+    private void ProcessaChegada(Evento evento)
     {
-        relogio = evento.Tempo;
-        Fila fila = evento.Fila;
+        Fila fila = rede.FilaEm(evento.Destino);
 
         bool servidorLivre = fila.HasFreeServer();
 
@@ -128,27 +174,17 @@ public class Simulador
             IniciaAtendimento(fila);
     }
 
-    public void ProcessaPassagem(Evento evento)
+    // Works for any pair of queues, including a queue routing to itself:
+    // the origin server is released before the client is admitted again.
+    private void ProcessaPassagem(Evento evento)
     {
-        if (evento.Tipo != TipoEvento.Passagem || evento.Destino is null)
-            throw new ArgumentException("A Passagem event must carry a destination queue.");
-
-        relogio = evento.Tempo;
-
-        LiberaServidor(evento.Fila);
-
-        Admite(evento.Destino);
+        LiberaServidor(rede.FilaEm(evento.Origem));
+        Admite(rede.FilaEm(evento.Destino));
     }
 
-    public void ProcessaSaida(Evento evento)
-    {
-        if (evento.Tipo != TipoEvento.Saida)
-            throw new ArgumentException("A Saida event must end a service that leaves the network.");
-
-        relogio = evento.Tempo;
-
-        LiberaServidor(evento.Fila);
-    }
+    // Origin is the queue that finished the service; destination is the outside (-1).
+    private void ProcessaSaida(Evento evento)
+        => LiberaServidor(rede.FilaEm(evento.Origem));
 
     private void LiberaServidor(Fila fila)
     {
@@ -183,32 +219,35 @@ public class Simulador
         if (encerrada) return;
 
         double intervalo = fila.MinArrival() + u * (fila.MaxArrival() - fila.MinArrival());
-        escalonador.Agenda(Evento.Chegada(relogio + intervalo, fila));
+        escalonador.Agenda(Evento.Chegada(relogio + intervalo, fila.Indice));
     }
 
+    // Draws the service time and then the routing of the client that will leave the
+    // server, so the end-of-service event is created already knowing its destination.
     private void IniciaAtendimento(Fila fila)
     {
         double u = ProximoAleatorio();
         if (encerrada) return;
 
-        double atendimento = fila.MinService() + u * (fila.MaxService() - fila.MinService());
-        escalonador.Agenda(FimDeAtendimento(fila, relogio + atendimento));
+        double fimAtendimento = relogio + fila.MinService() + u * (fila.MaxService() - fila.MinService());
+
+        int destino = SorteiaDestino(fila);
+        if (encerrada) return;
+
+        escalonador.Agenda(destino == Rede.Exterior
+            ? Evento.Saida(fimAtendimento, fila.Indice)
+            : Evento.Passagem(fimAtendimento, fila.Indice, destino));
     }
 
-    private Evento FimDeAtendimento(Fila fila, double tempo)
-    {
-        Fila? destino = rede.RoteamentoDeterministico(fila)
-            ? rede.Destino(fila)
-            : rede.Destino(fila, ProximoAleatorio());
-
-        return destino is null
-            ? Evento.Saida(tempo, fila)
-            : Evento.Passagem(tempo, fila, destino);
-    }
+    // A single route has probability 1 and needs no random number.
+    private int SorteiaDestino(Fila fila)
+        => rede.RoteamentoDeterministico(fila.Indice)
+            ? rede.Destino(fila.Indice, 0.0)
+            : rede.Destino(fila.Indice, ProximoAleatorio());
 
     private double ProximoAleatorio()
     {
-        if (aleatoriosUsados >= MaxAleatorios)
+        if (aleatoriosUsados >= maxAleatorios)
         {
             encerrada = true;
             return 0;

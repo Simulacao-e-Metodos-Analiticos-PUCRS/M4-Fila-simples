@@ -20,6 +20,8 @@ public class Fila
 
     public string Name { get; }
 
+    public int Indice { get; internal set; } = -1;
+
     public Fila(string name, int servers, int capacity,
                 double minArrival, double maxArrival,
                 double minService, double maxService)
@@ -40,8 +42,8 @@ public class Fila
             throw new ArgumentException("A queue must have a name.");
         if (servers < 1)
             throw new ArgumentException($"[{name}] A queue needs at least one server.");
-        if (capacity < 1)
-            throw new ArgumentException($"[{name}] Capacity must be at least one client.");
+        if (capacity < servers)
+            throw new ArgumentException($"[{name}] Capacity ({capacity}) cannot be smaller than the number of servers ({servers}).");
         if (minService < 0 || maxService < minService)
             throw new ArgumentException($"[{name}] Service time limits are invalid.");
 

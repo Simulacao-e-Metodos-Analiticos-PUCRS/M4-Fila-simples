@@ -5,14 +5,16 @@ namespace QueueSimulator;
 
 public class Escalonador
 {
-    private readonly PriorityQueue<Evento, double> eventos = new();
+    // Ties on time are broken by scheduling order (FIFO).
+    private readonly PriorityQueue<Evento, (double Tempo, long Ordem)> eventos = new();
+    private long agendados;
 
     public int Pendentes => eventos.Count;
 
     public void Agenda(Evento evento)
     {
         ArgumentNullException.ThrowIfNull(evento);
-        eventos.Enqueue(evento, evento.Tempo);
+        eventos.Enqueue(evento, (evento.Tempo, agendados++));
     }
 
     public bool TemEventos() => eventos.Count > 0;

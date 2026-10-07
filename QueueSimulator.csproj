@@ -14,6 +14,11 @@
   <ItemGroup>
     <None Update="**\*.json" CopyToOutputDirectory="Never" CopyToPublishDirectory="Never" />
     <Content Update="**\*.json" CopyToOutputDirectory="Never" CopyToPublishDirectory="Never" />
+    <None Update="**\*.yml" CopyToOutputDirectory="Never" CopyToPublishDirectory="Never" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="YamlDotNet" Version="16.3.0" />
   </ItemGroup>
 
 </Project>

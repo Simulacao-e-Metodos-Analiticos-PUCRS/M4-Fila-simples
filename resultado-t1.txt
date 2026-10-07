@@ -21,12 +21,12 @@
   Events processed ......... 58434
   Random numbers used ...... 100000
 
-Fila 1 (G/G/1/∞)
-----------------
+Fila1 (G/G/1/∞)
+---------------
   First arrival ............ 2,00 minutes
   External arrivals ........ 2,00 .. 4,00 minutes
   Service time ............. 1,00 .. 2,00 minutes
-  Routing .................. 20% -> Fila 2, 80% -> Fila 3
+  Routing .................. 20% -> Fila2, 80% -> Fila3
 
   +-------+------------------------+--------------------+-------------+
   | State | Accumulated time (min) | Probability        | Percent     |
@@ -42,10 +42,10 @@ Fila 1 (G/G/1/∞)
 
   Lost clients ............. 0
 
-Fila 2 (G/G/2/5)
-----------------
+Fila2 (G/G/2/5)
+---------------
   Service time ............. 4,00 .. 6,00 minutes
-  Routing .................. 30% -> Fila 1, 50% -> Fila 3, 20% -> Exterior
+  Routing .................. 30% -> Fila1, 50% -> Fila3, 20% -> Exterior
 
   +-------+------------------------+--------------------+-------------+
   | State | Accumulated time (min) | Probability        | Percent     |
@@ -62,10 +62,10 @@ Fila 2 (G/G/2/5)
 
   Lost clients ............. 4
 
-Fila 3 (G/G/2/10)
------------------
+Fila3 (G/G/2/10)
+----------------
   Service time ............. 5,00 .. 15,00 minutes
-  Routing .................. 70% -> Fila 2, 30% -> Exterior
+  Routing .................. 70% -> Fila2, 30% -> Exterior
 
   +-------+------------------------+--------------------+-------------+
   | State | Accumulated time (min) | Probability        | Percent     |

@@ -91,43 +91,72 @@ public static class ConsolePrinter
         Console.WriteLine(new string('-', title.Length));
     }
 
-    public static void PrintNetworkResults(Rede rede, double totalTime, uint events, uint randoms)
+    public static void PrintNetworkResults(Rede rede, ResultadoSimulacao resultado, string titulo)
     {
         Console.WriteLine();
         PrintHeaderLine();
-        PrintHeaderText("QUEUE RESULTS - QUEUES 1 AND 2");
+        PrintHeaderText($"QUEUEING NETWORK RESULTS - {rede.Filas.Count} QUEUE(S)");
+        PrintHeaderText(titulo);
         PrintHeaderLine();
 
         Console.WriteLine();
-        PrintField("Global simulation time", $"{totalTime:F6} minutes");
-        PrintField("Events processed", events.ToString());
-        PrintField("Random numbers used", randoms.ToString());
+        PrintField("Global simulation time", $"{resultado.TempoGlobal:F6} minutes");
+        PrintField("Events processed", $"{resultado.Eventos:0.##}");
+        PrintField("Random numbers used", $"{resultado.Aleatorios:0.##}");
 
-        foreach (Fila fila in rede.Filas)
+        for (int indice = 0; indice < rede.Filas.Count; indice++)
         {
-            Console.WriteLine();
-            Console.WriteLine($"  {fila.Name} ({fila.Notation()})");
-            PrintStateTable(fila, totalTime);
-            Console.WriteLine($"  Lost clients: {fila.Losses()}");
+            Fila fila = rede.Filas[indice];
+            ResultadoFila resultadoFila = resultado.Filas[indice];
+
+            PrintSection($"{fila.Name} ({fila.Notation()})");
+            if (rede.PrimeiraChegadaDe(indice) is double primeiraChegada)
+            {
+                PrintField("First arrival", $"{primeiraChegada:F2} minutes");
+                PrintField("External arrivals", $"{fila.MinArrival():F2} .. {fila.MaxArrival():F2} minutes");
+            }
+            PrintField("Service time", $"{fila.MinService():F2} .. {fila.MaxService():F2} minutes");
+            PrintField("Routing", DescribeRouting(rede, fila));
+            PrintStateTable(resultadoFila.Tempos, resultado.TempoGlobal);
+            PrintField("Lost clients", $"{resultadoFila.Perdas:0.##}");
         }
     }
 
-    private static void PrintStateTable(Fila fila, double totalTime)
+    public static void PrintNetworkDebugHeader(Rede rede)
+    {
+        PrintHeaderText("EVENT DEBUG");
+        PrintHeaderLine();
+        Console.WriteLine("States after each event, in order: "
+            + string.Join(", ", rede.Filas.Select(fila => fila.Name)));
+        Console.WriteLine();
+    }
+
+    public static void PrintNetworkDebugEvent(uint eventNumber, Evento evento, Rede rede)
+    {
+        string rota = $"{rede.NomeDe(evento.Origem)} ({evento.Origem}) -> {rede.NomeDe(evento.Destino)} ({evento.Destino})";
+        string estados = string.Join(" ", rede.Filas.Select(fila => $"{fila.Status(),3}"));
+
+        Console.WriteLine($"| {eventNumber,6} | {evento.Tipo,-8} | {evento.Tempo,14:F4} | {rota,-34} | {estados} |");
+    }
+
+    private static void PrintStateTable(double[] tempos, double totalTime)
     {
         Console.WriteLine();
         Console.WriteLine($"  {ResultBorder}");
         Console.WriteLine("  | State | Accumulated time (min) | Probability        | Percent     |");
         Console.WriteLine($"  {ResultBorder}");
 
-        for (int state = 0; state < fila.StateCount(); state++)
+        double somaTempos = 0.0;
+        double somaProbabilidades = 0.0;
+
+        for (int state = 0; state < tempos.Length; state++)
         {
-            double tempo = fila.TimeAt(state);
-            double probabilidade = totalTime > 0 ? tempo / totalTime : 0.0;
+            double probabilidade = totalTime > 0 ? tempos[state] / totalTime : 0.0;
+            somaTempos += tempos[state];
+            somaProbabilidades += probabilidade;
 
-            Console.WriteLine($"  | {state,5} | {tempo,22:F6} | {probabilidade,18:F12} | {probabilidade * 100,10:F6}% |");
+            Console.WriteLine($"  | {state,5} | {tempos[state],22:F6} | {probabilidade,18:F12} | {probabilidade * 100,10:F6}% |");
         }
-
-        (double somaTempos, double somaProbabilidades) = Totals(fila, totalTime);
 
         Console.WriteLine($"  {ResultBorder}");
         Console.WriteLine($"  | TOTAL | {somaTempos,22:F6} | {somaProbabilidades,18:F12} | {somaProbabilidades * 100,10:F6}% |");
@@ -135,37 +164,7 @@ public static class ConsolePrinter
         Console.WriteLine();
     }
 
-    private static (double Tempos, double Probabilidades) Totals(Fila fila, double totalTime)
-    {
-        double tempos = 0.0;
-        double probabilidades = 0.0;
-
-        for (int state = 0; state < fila.StateCount(); state++)
-        {
-            tempos += fila.TimeAt(state);
-            probabilidades += totalTime > 0 ? fila.TimeAt(state) / totalTime : 0.0;
-        }
-
-        return (tempos, probabilidades);
-    }
-
-    private static void PrintCheck(string label, double obtido, double esperado, string detalhe)
-    {
-        double diferenca = Math.Abs(obtido - esperado);
-        string veredito = diferenca <= 1e-6 ? "OK" : "FAILED";
-
-        Console.WriteLine($"  {(label + " ").PadRight(34, '.')} {detalhe}");
-        Console.WriteLine($"  {new string(' ', 34)} difference = {diferenca:E3}  [{veredito}]");
-    }
-
     private static string DescribeRouting(Rede rede, Fila fila)
-    {
-        IReadOnlyList<Rota> rotas = rede.RotasDe(fila);
-
-        if (rotas.Count == 0)
-            return "leaves the network";
-
-        return string.Join(", ", rotas.Select(rota =>
-            $"{rota.Probabilidade * 100:F0}% -> {rota.Destino?.Name ?? "out of the network"}"));
-    }
+        => string.Join(", ", rede.RotasDe(fila.Indice).Select(rota =>
+            $"{rota.Probabilidade * 100:0.##}% -> {rede.NomeDe(rota.Destino)}"));
 }

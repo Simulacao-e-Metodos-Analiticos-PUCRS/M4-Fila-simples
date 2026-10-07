@@ -1,123 +1,163 @@
 # Queue Simulator
 
-Simulador de eventos discretos para **filas simples** e **filas em tandem**, desenvolvido para a disciplina de Simulação e Métodos Analíticos (2026/2) — Escola Politécnica, PUCRS. Prof. Afonso Sales.
+Simulador de eventos discretos para **redes de filas com qualquer topologia**, desenvolvido para a disciplina de Simulação e Métodos Analíticos (2026/2) — Escola Politécnica, PUCRS. Prof. Afonso Sales.
 
 **Equipe:** Augusto Sanhudo da Silva Knob · Carlos Eduardo Brito Mascarello · Matheus Hrymalak Souza · Olivia Maite Furquim Araujo Livak
 
-O simulador cobre as duas etapas do trabalho:
+O modelo é lido de um arquivo `.yml` no mesmo estilo do simulador do módulo 3 (`!PARAMETERS`, `arrivals`, `queues`, `network`, `rndnumbersPerSeed`/`seeds` ou `rndnumbers`). Filas simples e filas em tandem são casos particulares de rede.
 
-- **M4 — fila simples:** uma fila `G/G/c/K` com chegadas externas;
-- **M6 — filas em tandem:** filas ligadas por probabilidades de roteamento, com o caso `Fila 1 → Fila 2` como validação.
+## Como testar (passo a passo)
 
-O formato do arquivo de configuração determina qual dos dois modelos será executado.
+1. Instale o [.NET 10 SDK](https://dotnet.microsoft.com/download) e confira com `dotnet --version`.
+2. Abra um terminal na pasta que contém `QueueSimulator.csproj`.
+3. Rode o modelo do T1:
 
-## Requisitos
+   ```bash
+   dotnet run t1.yml
+   ```
 
-- [.NET 10 SDK](https://dotnet.microsoft.com/download)
+   A primeira execução baixa a biblioteca de leitura de YAML (YamlDotNet) e compila o projeto; as seguintes são imediatas. O relatório sai no terminal; para salvá-lo:
 
-## Configuração
+   ```bash
+   dotnet run t1.yml > resultado-t1.txt
+   ```
 
-Abra no terminal a pasta que contém `QueueSimulator.csproj`. Os arquivos `.json` devem ficar nessa pasta.
+4. Para simular outro modelo, crie um modelo de exemplo comentado e edite-o:
 
-- Arquivo **sem** a chave `Queues`: fila simples (M4).
-- Arquivo **com** a chave `Queues`: filas em tandem (M6).
+   ```bash
+   dotnet run --create-model meu-modelo.yml
+   dotnet run meu-modelo.yml
+   ```
 
-### Fila simples
+Outras formas de uso:
 
-Exemplo: [`gg15.json`](gg15.json)
+| Comando | O que faz |
+|---|---|
+| `dotnet run t1` | A extensão é opcional: procura `t1.yml`, `t1.yaml` e `t1.json`, nessa ordem |
+| `dotnet run t1.yml --debug` | Imprime cada evento (tipo, tempo, origem → destino e estado de todas as filas) antes do relatório |
+| `dotnet run` | Abre um menu interativo (opção 1 executa um modelo, opção 2 cria um modelo de exemplo) |
 
-```json
-{
-    "Servers": 1,
-    "MaxCapacity": 5,
-    "NumberOfEvents": 999999,
-    "FirstArrivalTime": 3.0,
-    "MinArrivalTime": 3.0,
-    "MaxArrivalTime": 5.0,
-    "MinServiceTime": 4.0,
-    "MaxServiceTime": 5.0
-}
+## Formato do modelo (`.yml`)
+
+Exemplo: [`t1.yml`](t1.yml).
+
+```yaml
+!PARAMETERS
+
+arrivals:              # primeira chegada externa de cada fila que recebe clientes de fora
+   Q1: 2.0
+
+queues:
+   Q1:
+      servers: 1       # c
+                       # capacity omitida = capacidade infinita (G/G/1)
+      minArrival: 2.0  # intervalo entre chegadas externas (só nas filas com chegada externa)
+      maxArrival: 4.0
+      minService: 1.0  # tempo de atendimento
+      maxService: 2.0
+   Q2:
+      servers: 2
+      capacity: 5      # K
+      minService: 4.0
+      maxService: 6.0
+
+network:               # roteamento ao fim do atendimento
+-  source: Q1
+   target: Q2
+   probability: 1.0
+-  source: Q2
+   target: Q1
+   probability: 0.3
+-  source: Q2
+   target: Exterior    # opcional: o que falta para 1 sai da rede
+   probability: 0.7
+
+rndnumbersPerSeed: 100000   # aleatórios usados em cada execução
+seeds:                      # uma execução por semente
+- 98765
 ```
 
-`Servers` define os servidores; `MaxCapacity` define a capacidade (`null` para ilimitada); `FirstArrivalTime` define a primeira chegada; `MinArrivalTime` e `MaxArrivalTime` definem o intervalo de chegadas; e `MinServiceTime` e `MaxServiceTime` definem o intervalo de atendimento.
+Regras:
 
-### Filas em tandem
+- **Filas:** `servers`, `minService` e `maxService` são obrigatórios. `capacity` é opcional e, se informada, deve ser ≥ `servers`. `minArrival` e `maxArrival` vêm juntos, e a fila precisa de uma entrada em `arrivals`.
+- **Roteamento:** como no simulador do módulo 3, o que faltar para 1 nas rotas de uma fila vai para o exterior. Uma fila sem rotas manda 100% para o exterior. A saída também pode ser escrita explicitamente com `target: Exterior`; nesse caso as rotas da fila precisam somar exatamente 1. Soma acima de 1, destino inexistente ou destino repetido são erros.
+- **Sorteio do destino:** um número `u ∈ [0,1)` é comparado com as faixas acumuladas, na ordem do arquivo. Na Fila 2 do T1, por exemplo: `u < 0,3` → Fila 1, `u < 0,8` → Fila 3, senão → exterior. Filas com uma única rota não consomem número aleatório.
+- **Parada:** a simulação começa com as filas vazias e termina quando o último número aleatório disponível é usado (`rndnumbersPerSeed`, ou o tamanho da lista `rndnumbers`).
+- **Várias sementes:** com mais de uma semente em `seeds`, cada execução é impressa e, no fim, a média das execuções (tempos acumulados, perdas e tempo global).
+- **Lista fixa:** no lugar de `seeds`/`rndnumbersPerSeed`, é possível informar `rndnumbers:` com uma lista fixa de números em `[0,1)`.
+- **Chaves desconhecidas:** uma chave digitada errado (por exemplo `capacty`) gera erro, em vez de ser ignorada.
 
-Exemplo: [`tandem.json`](tandem.json)
+Gerador: congruencial linear `x = (1664525·x + 1013904223) mod 2³²`, `u = x / 2³²`.
 
-```json
-{
-    "FirstArrivalTime": 2.5,
-    "Queues": [
-        {
-            "Name": "Fila 1",
-            "Servers": 2,
-            "Capacity": 3,
-            "MinArrival": 1.0,
-            "MaxArrival": 5.0,
-            "MinService": 4.0,
-            "MaxService": 5.0,
-            "Routes": [ { "To": "Fila 2", "Probability": 1.0 } ]
-        },
-        {
-            "Name": "Fila 2",
-            "Servers": 1,
-            "Capacity": 5,
-            "MinService": 1.0,
-            "MaxService": 3.0,
-            "Routes": []
-        }
-    ]
-}
-```
+## Resultado do T1
 
-Cada fila informa `Name`, `Servers`, `Capacity`, `MinService` e `MaxService`. `MinArrival` e `MaxArrival` devem ser informados apenas nas filas que recebem chegadas externas. Em `Routes`, `To` indica a fila de destino e `Probability` indica a probabilidade de roteamento. Uma lista vazia significa que o cliente deixa o sistema após o atendimento.
+Modelo [`t1.yml`](t1.yml): filas inicialmente vazias, primeiro cliente no tempo 2,0, 100.000 aleatórios (semente 98765). Saída completa em [`resultado-t1.txt`](resultado-t1.txt).
 
-## Execução
+**Resultado da Fila 1: G/G/1, chegadas entre 2..4, atendimento entre 1..2** — roteamento 0,2 → Fila 2, 0,8 → Fila 3
 
-Na raiz do projeto, execute:
+| Estado | Tempo acumulado (min) | Probabilidade |
+|---:|---:|---:|
+| 0 | 20272,660643 | 40,0051% |
+| 1 | 26698,272570 | 52,6851% |
+| 2 | 3555,515732 | 7,0163% |
+| 3 | 148,149715 | 0,2924% |
+| 4 | 0,625634 | 0,0012% |
 
-```bash
-# Filas em tandem da validação do trabalho
-dotnet run tandem
+Perdas: 0
 
-# Fila simples G/G/1/5
-dotnet run gg15
+**Resultado da Fila 2: G/G/2/5, atendimento entre 4..6** — roteamento 0,3 → Fila 1, 0,5 → Fila 3, 0,2 → exterior
 
-# Fila simples G/G/2/5
-dotnet run gg25
-```
+| Estado | Tempo acumulado (min) | Probabilidade |
+|---:|---:|---:|
+| 0 | 12232,564645 | 24,1391% |
+| 1 | 21008,539187 | 41,4572% |
+| 2 | 13007,876430 | 25,6691% |
+| 3 | 3760,603373 | 7,4210% |
+| 4 | 591,535821 | 1,1673% |
+| 5 | 74,104837 | 0,1462% |
 
-O sufixo `.json` é opcional. Para executar outro arquivo:
+Perdas: 4
 
-```bash
-dotnet run meu-modelo
-```
+**Resultado da Fila 3: G/G/2/10, atendimento entre 5..15** — roteamento 0,7 → Fila 2, 0,3 → exterior
 
-Para imprimir cada evento da fila simples em modo de depuração:
+| Estado | Tempo acumulado (min) | Probabilidade |
+|---:|---:|---:|
+| 0 | 6,741586 | 0,0133% |
+| 1 | 2,066483 | 0,0041% |
+| 2 | 2,792766 | 0,0055% |
+| 3 | 4,562755 | 0,0090% |
+| 4 | 5,293618 | 0,0104% |
+| 5 | 3,417386 | 0,0067% |
+| 6 | 8,000998 | 0,0158% |
+| 7 | 57,453262 | 0,1134% |
+| 8 | 2810,878791 | 5,5469% |
+| 9 | 15744,397119 | 31,0692% |
+| 10 | 32029,619528 | 63,2057% |
 
-```bash
-dotnet run gg15 --debug
-```
+Perdas: 11703
 
-Para salvar o resultado em um arquivo:
+**Tempo total de simulação:** 50675,224293 minutos (58.434 eventos, 100.000 aleatórios).
 
-```bash
-dotnet run tandem > resultado-tandem.txt
-```
+A Fila 3 fica quase sempre cheia e perde muitos clientes. Isso é esperado: pelas equações de tráfego, ela recebe cerca de 0,4 cliente/min, mas com 2 servidores e atendimento médio de 10 min só consegue atender 0,2 cliente/min.
 
-O relatório exibe os estados das filas, tempos acumulados, probabilidades, clientes perdidos, tempo global da simulação e eventos processados.
+## Outros arquivos de entrada
+
+O simulador também aceita os formatos JSON das etapas anteriores:
+
+- **Rede em JSON** (arquivo com a chave `Queues`): [`tandem.json`](tandem.json) (o mesmo modelo do T1, com resultado idêntico ao do `t1.yml`) e [`rede.json`](rede.json) (rede de validação com 3 filas). Cada fila informa `Name`, `Servers`, `Capacity`, `MinArrival`/`MaxArrival`, `MinService`/`MaxService` e `Routes` (`To` = nome da fila ou `"Exterior"`, `Probability`; as rotas devem somar 1). `FirstArrivalTime` é a primeira chegada externa.
+- **Fila simples (M4)** (arquivo sem a chave `Queues`): [`gg15.json`](gg15.json) e [`gg25.json`](gg25.json), com `Servers`, `MaxCapacity`, `FirstArrivalTime`, `MinArrivalTime`, `MaxArrivalTime`, `MinServiceTime` e `MaxServiceTime`.
 
 ## Estrutura do código
 
 | Arquivo | Responsabilidade |
 |---|---|
-| [`RandomGen.cs`](RandomGen.cs) | Gerador de números pseudoaleatórios |
-| [`Fila.cs`](Fila.cs) | Configuração, estado e estatísticas de uma fila |
-| [`Evento.cs`](Evento.cs) | Eventos da simulação |
-| [`Escalonador.cs`](Escalonador.cs) | Fila de prioridade dos eventos |
-| [`Rede.cs`](Rede.cs) | Topologia, roteamento e leitura do JSON das filas |
-| [`Simulador.cs`](Simulador.cs) | Simulação de filas em tandem |
-| [`Simulator.cs`](Simulator.cs) | Simulação de fila simples |
-| [`ConsolePrinter.cs`](ConsolePrinter.cs) | Impressão dos relatórios |
-| [`Program.cs`](Program.cs) | Linha de comando e menu interativo |
+| [`Program.cs`](Program.cs) | Linha de comando, menu interativo e criação do modelo de exemplo |
+| [`Modelo.cs`](Modelo.cs) | Leitura do `.yml` (formato do módulo 3) e das execuções (sementes ou lista de aleatórios) |
+| [`Rede.cs`](Rede.cs) | Lista de filas, rotas, sorteio por faixas acumuladas, validação e leitura do JSON |
+| [`Simulador.cs`](Simulador.cs) | Laço de eventos da rede (chegada, passagem e saída), resultados e média de várias execuções |
+| [`Evento.cs`](Evento.cs) | Eventos com origem e destino (`-1` = exterior) |
+| [`Escalonador.cs`](Escalonador.cs) | Fila de prioridade dos eventos (empates em ordem de agendamento) |
+| [`Fila.cs`](Fila.cs) | Parâmetros G/G/c/K, estado, perdas e tempo acumulado por estado |
+| [`RandomGen.cs`](RandomGen.cs) | Gerador congruencial linear (com semente) e lista fixa de aleatórios |
+| [`ConsolePrinter.cs`](ConsolePrinter.cs) | Relatórios |
+| [`Simulator.cs`](Simulator.cs) | Simulador de fila simples da etapa M4 (formato JSON antigo) |

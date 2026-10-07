@@ -1,0 +1,57 @@
+!PARAMETERS
+
+# T1 - Queueing network (Simulation and Analytical Methods, 2026/2)
+#
+#   Fila1  G/G/1     arrivals 2..4, service 1..2  -> 0.2 Fila2, 0.8 Fila3
+#   Fila2  G/G/2/5   service 4..6                 -> 0.3 Fila1, 0.5 Fila3, 0.2 out
+#   Fila3  G/G/2/10  service 5..15                -> 0.7 Fila2, 0.3 out
+#
+# Empty queues, first client at time 2.0, 100,000 random numbers.
+
+arrivals:
+   Fila1: 2.0
+
+queues:
+   Fila1:
+      servers: 1
+      minArrival: 2.0
+      maxArrival: 4.0
+      minService: 1.0
+      maxService: 2.0
+   Fila2:
+      servers: 2
+      capacity: 5
+      minService: 4.0
+      maxService: 6.0
+   Fila3:
+      servers: 2
+      capacity: 10
+      minService: 5.0
+      maxService: 15.0
+
+network:
+-  source: Fila1
+   target: Fila2
+   probability: 0.2
+-  source: Fila1
+   target: Fila3
+   probability: 0.8
+-  source: Fila2
+   target: Fila1
+   probability: 0.3
+-  source: Fila2
+   target: Fila3
+   probability: 0.5
+-  source: Fila2
+   target: Exterior
+   probability: 0.2
+-  source: Fila3
+   target: Fila2
+   probability: 0.7
+-  source: Fila3
+   target: Exterior
+   probability: 0.3
+
+rndnumbersPerSeed: 100000
+seeds:
+- 98765

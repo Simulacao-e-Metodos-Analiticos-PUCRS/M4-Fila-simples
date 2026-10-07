@@ -1,0 +1,36 @@
+{
+    "FirstArrivalTime": 2.0,
+
+    "Queues": [
+        {
+            "Name": "Fila 1",
+            "Servers": 1,
+            "Capacity": 3,
+            "MinArrival": 1.0,
+            "MaxArrival": 2.0,
+            "MinService": 2.0,
+            "MaxService": 3.0,
+            "Routes": [
+                { "To": "Fila 2", "Probability": 0.2 },
+                { "To": "Fila 3", "Probability": 0.3 },
+                { "To": "Exterior", "Probability": 0.5 }
+            ]
+        },
+        {
+            "Name": "Fila 2",
+            "Servers": 2,
+            "Capacity": 4,
+            "MinService": 3.0,
+            "MaxService": 5.0,
+            "Routes": [ { "To": "Exterior", "Probability": 1.0 } ]
+        },
+        {
+            "Name": "Fila 3",
+            "Servers": 3,
+            "Capacity": 5,
+            "MinService": 2.0,
+            "MaxService": 4.0,
+            "Routes": [ { "To": "Exterior", "Probability": 1.0 } ]
+        }
+    ]
+}
