@@ -1,51 +1,54 @@
 !PARAMETERS
- 
+
 arrivals:
-   Matriculas: 2.0
- 
+   Matriculas: 3.0
+
 queues:
    Matriculas:
-      servers: 5
+      servers: 4
       capacity: 20
       minArrival: 3.0
       maxArrival: 5.0
       minService: 2.0
       maxService: 5.0
    Coordenacao:
-      servers: 1
+      servers: 2
       capacity: 10
       minService: 1.0
       maxService: 3.0
    Financeiro:
       servers: 1
       capacity: 8
-      minService: 8.0
-      maxService: 15.0
- 
+      minService: 1.0
+      maxService: 8.0
+
 network:
 -  source: Matriculas
    target: Coordenacao
-   probability: 0.4334
+   probability: 0.7
 -  source: Matriculas
    target: Financeiro
-   probability: 0.1083
+   probability: 0.2
 -  source: Matriculas
    target: Exterior
-   probability: 0.4583
+   probability: 0.1
 -  source: Coordenacao
    target: Matriculas
-   probability: 0.9
+   probability: 0.6
 -  source: Coordenacao
    target: Exterior
-   probability: 0.1
+   probability: 0.4
 -  source: Financeiro
    target: Coordenacao
-   probability: 0.7
+   probability: 0.3
 -  source: Financeiro
    target: Exterior
-   probability: 0.3
+   probability: 0.2
+-  source: Financeiro
+   target: Matriculas
+   probability: 0.5
 
- 
+
 rndnumbersPerSeed: 100000
 seeds:
 - 98765
